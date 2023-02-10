@@ -1,7 +1,7 @@
-import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { HttpClient, HttpEventType, HttpHeaders, HttpParams } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { Observable, Subject, throwError } from "rxjs";
-import { map, catchError } from "rxjs/operators";
+import { map, tap, catchError } from "rxjs/operators";
 
 import { Post } from "./post.model";
 
@@ -30,12 +30,13 @@ export class PostsService {
             need a subscription in order to get access to the response
          -- expect to receive {name: string} object from response */
       this.http.post<{ name: string }>(
-         'https://angular-project-d328d.firebaseio.com/posts.json',
+         'https://some-database/posts.json',
          { title, content },
          {
             headers: new HttpHeaders({
                'Custom-Header': 'Hello'
-            })
+            }),
+            params: new HttpParams().set('print', 'pretty')
          }
       ).subscribe(
          { next: responseData => {
@@ -65,7 +66,7 @@ export class PostsService {
       -- response body is an observable that must be subscribed to in another component */
    public fetchPosts(): Observable<Post[]> {
       // we can explicitly cast the type of data we want to retrieve <{x: y}>
-      return this.http.get<{ [key: string]: Post }>('https://angular-project-d328d.firebaseio.com/posts.json').pipe(
+      return this.http.get<{ [key: string]: Post }>('https://some-database/posts.json').pipe(
          /* 
                // catchError operator:
                // -- good for doing side effects in terms of error handling 
@@ -107,6 +108,19 @@ export class PostsService {
       -- response body is an observable that must be subscribed to in another component */
    public deleteAllPosts(): Observable<any> {
       // using one param - the URL with all posts will delete all posts!
-      return this.http.delete('https://angular-project-d328d.firebaseio.com/posts.json');
+      return this.http.delete(
+         'https://some-database/posts.json',
+         {
+            observe: 'events'
+         }
+      ).pipe(
+         tap((events: any) => {
+            if (events.type === HttpEventType.Sent) {
+               console.log('~Delete request sent~');
+            } else if (events.type === HttpEventType.Response) {
+               console.log('~Gathering the response now~')
+            }
+         })
+      );
    }
 } 
